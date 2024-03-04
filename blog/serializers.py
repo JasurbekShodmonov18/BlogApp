@@ -31,7 +31,7 @@ class ProfileSerializer(ModelSerializer):
 class PostSerializer(ModelSerializer):
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'profile', 'user', 'created_at']
+        fields = ['id', 'title', 'content',  'user', 'created_at']
 
 
 class CommentSerializer(ModelSerializer):
