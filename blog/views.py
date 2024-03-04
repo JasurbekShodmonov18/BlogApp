@@ -8,9 +8,9 @@ from rest_framework import viewsets, permissions
 from rest_framework.permissions import IsAdminUser,IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import CustomUser, Profile, Post, Comment, Reply, FavoritePost, Follower
+from .models import CustomUser, Profile, Post, Comment, Reply, FavoritePost, Follower, Like
 from .serializers import UserSerializer, ProfileSerializer, PostSerializer, CommentSerializer, ReplySerializer, \
-    FavouritePostSerializer, CustomRefreshSerializer, CustomLoginSerializer, FollowerSerializer
+    FavouritePostSerializer, CustomRefreshSerializer, CustomLoginSerializer, FollowerSerializer, LikeSerializer
 
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import viewsets, status, filters
@@ -142,6 +142,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
     filterset_class = ProfileFilter
     # permission_classes = [IsAuthenticated]
 
+    @action(detail=True, methods=['get'])
+    def likes(self, request, pk=None):
+        user_profile = self.get_object()
+        likes = Like.objects.filter(user=user_profile.user)
+        serializer = LikeSerializer(likes, many=True)
+        return Response(serializer.data)
+
 
 class FollowerViewSet(viewsets.ModelViewSet):
     queryset = Follower.objects.all()
@@ -185,6 +192,16 @@ class CommmentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
+    @action(detail=True, methods=['post'])
+    def like(self, request, pk=None):
+        comment = self.get_object()
+        like, created = Like.objects.get_or_create(user=request.user, content_type='comment', object_id=comment.id)
+        return Response({'liked': created})
+
+
+class LikeViewSet(viewsets.ModelViewSet):
+    queryset = Like.objects.all()
+    serializer_class = LikeSerializer
 
 class ReplyViewSet(viewsets.ModelViewSet):
     queryset = Reply.objects.all()

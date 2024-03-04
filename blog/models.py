@@ -1,3 +1,5 @@
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.contrib.auth.models import  AbstractUser
 
@@ -7,6 +9,13 @@ class CustomUser(AbstractUser):
         return self.username
 
 
+class Like(models.Model):
+    objects = None
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    created_at = models.DateTimeField(auto_now_add=True)
 
 class Profile(models.Model):
     objects = None
@@ -16,6 +25,7 @@ class Profile(models.Model):
     bio = models.CharField(max_length=400)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    likes = GenericRelation(Like)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} "
@@ -68,6 +78,10 @@ class Reply(models.Model):
         return self.reply
 
 
+
+
+    def __str__(self):
+        return f'{self.user.username} likes {self.content_object}'
 class FavoritePost(models.Model):
     objects = None
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)

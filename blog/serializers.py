@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from django.contrib.auth.models import User
-from blog.models import Profile, Post, Comment, Reply, FavoritePost, CustomUser, Follower
+from blog.models import Profile, Post, Comment, Reply, FavoritePost, CustomUser, Follower, Like
 
 
 class UserSerializer(ModelSerializer):
@@ -63,3 +63,9 @@ class FavouritePostSerializer(ModelSerializer):
 
 class CustomRefreshSerializer(serializers.Serializer):
     refresh_token = serializers.CharField(max_length=250)
+
+
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = ['id', 'user', 'content_type', 'object_id', 'created_at']
