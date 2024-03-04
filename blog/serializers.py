@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from django.contrib.auth.models import User
-from blog.models import Profile, Post, Comment, Reply, FavoritePost, CustomUser
+from blog.models import Profile, Post, Comment, Reply, FavoritePost, CustomUser, Follower
 
 
 class UserSerializer(ModelSerializer):
@@ -23,11 +23,20 @@ class CustomLoginSerializer(serializers.Serializer):
 
 
 class ProfileSerializer(ModelSerializer):
+    follower_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Profile
-        fields = "__all__"
+        fields = ('id','first_name','last_name', 'bio', 'avatar', 'date_of_birth', 'user', 'follower_count')
+
+    def get_follower_count(self, obj):
+        return Follower.objects.filter(following=obj.user).count()
 
 
+class FollowerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Follower
+        fields = '__all__'
 class PostSerializer(ModelSerializer):
     class Meta:
         model = Post

@@ -1,5 +1,6 @@
 from linecache import cache
-
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import authenticate
 from django.http import Http404
 from drf_yasg import openapi
@@ -7,19 +8,21 @@ from rest_framework import viewsets, permissions
 from rest_framework.permissions import IsAdminUser,IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import CustomUser, Profile, Post, Comment, Reply, FavoritePost
+from .models import CustomUser, Profile, Post, Comment, Reply, FavoritePost, Follower
 from .serializers import UserSerializer, ProfileSerializer, PostSerializer, CommentSerializer, ReplySerializer, \
-    FavouritePostSerializer, CustomRefreshSerializer, CustomLoginSerializer
+    FavouritePostSerializer, CustomRefreshSerializer, CustomLoginSerializer, FollowerSerializer
 
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import viewsets, status
-from rest_framework.decorators import permission_classes, api_view
+from rest_framework import viewsets, status, filters
+from rest_framework.decorators import permission_classes, api_view, action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.state import token_backend
 from rest_framework_simplejwt.tokens import RefreshToken
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
@@ -121,10 +124,55 @@ def generate_tokens_for_user(user):
         "refresh_token": new_refresh_token,
     }
 
+
+class ProfileFilter(django_filters.FilterSet):
+    username = django_filters.CharFilter(field_name='user__username', lookup_expr='icontains')
+    first_name = django_filters.CharFilter(field_name='first_name', lookup_expr='icontains')
+    last_name = django_filters.CharFilter(field_name='last_name', lookup_expr='icontains')
+
+    class Meta:
+        model = Profile
+        fields = ['username', 'first_name', 'last_name']  # Add other valid model fields here if needed
+
+
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ProfileFilter
+    # permission_classes = [IsAuthenticated]
+
+
+class FollowerViewSet(viewsets.ModelViewSet):
+    queryset = Follower.objects.all()
+    serializer_class = FollowerSerializer
+
+    @action(detail=True, methods=['post'])
+    def follow(self, request, pk=None):
+        follower = self.request.user
+        following = self.get_object().user
+
+        if Follower.objects.filter(follower=follower, following=following).exists():
+            return Response({'detail': 'Already following'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(data={'follower': follower.id, 'following': following.id})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response({'detail': 'Followed successfully'}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def unfollow(self, request, pk=None):
+        follower = self.request.user
+        following = self.get_object().user
+
+        try:
+            instance = Follower.objects.get(follower=follower, following=following)
+            instance.delete()
+            return Response({'detail': 'Unfollowed successfully'}, status=status.HTTP_200_OK)
+        except Follower.DoesNotExist:
+            return Response({'detail': 'Not following'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
@@ -137,10 +185,12 @@ class CommmentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
+
 class ReplyViewSet(viewsets.ModelViewSet):
     queryset = Reply.objects.all()
     serializer_class = ReplySerializer
     permission_classes = [IsAuthenticated]
+
 
 class FavouritePostViewSet(viewsets.ModelViewSet):
     queryset = FavoritePost.objects.all()
