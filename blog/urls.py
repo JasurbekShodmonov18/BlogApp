@@ -12,7 +12,8 @@ router.register(r'post', PostViewSet, basename='post')
 router.register(r'comment', CommmentViewSet, basename='comment')
 router.register(r'reply', ReplyViewSet, basename='reply')
 router.register(r'favouritePost', FavouritePostViewSet, basename='favouritePost')
-router.register(r'likes', LikeViewSet, basename='likes' )
+router.register(r'likes', LikeViewSet, basename='likes')
+
 
 urlpatterns = [
     path('', include(router.urls)),

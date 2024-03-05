@@ -125,6 +125,7 @@ def generate_tokens_for_user(user):
     }
 
 
+
 class ProfileFilter(django_filters.FilterSet):
     username = django_filters.CharFilter(field_name='user__username', lookup_expr='icontains')
     first_name = django_filters.CharFilter(field_name='first_name', lookup_expr='icontains')
@@ -140,7 +141,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
     serializer_class = ProfileSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ProfileFilter
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     @action(detail=True, methods=['get'])
     def likes(self, request, pk=None):
@@ -149,6 +150,18 @@ class ProfileViewSet(viewsets.ModelViewSet):
         serializer = LikeSerializer(likes, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['delete'])
+    def delete_profile(self, request, pk=None):
+        user_profile = self.get_object()
+
+        # Delete associated user
+        user_profile.user.delete()
+
+        # Delete user profile
+        user_profile.delete()
+
+        return Response({'detail': 'User profile and associated user deleted successfully.'},
+                        status=status.HTTP_204_NO_CONTENT)
 
 class FollowerViewSet(viewsets.ModelViewSet):
     queryset = Follower.objects.all()
