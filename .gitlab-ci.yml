@@ -3,17 +3,27 @@ stages:
   - test
   - deploy
 
-build: # this is a job
+
+build:
   stage: build
   script:
-    - echo "Building"
+    - echo "Building $APP_NAME"
+    - apt-get update -qy  # Update package lists
+    - apt-get install -y python3-pip  # Install pip
+    - pip3 install -r requirements.txt  # Install Python dependencies
+    - python3 manage.py migrate  # Apply database migrations
+    # Add any other build-related commands here
 
-unittest: # another job
+unittest:
   stage: test
   script:
-    - echo "Run a unittest for the app"
+    - echo "Running unittests for $APP_NAME"
+    - coverage run manage.py test  # Run unit tests with coverage
+    - coverage report
+    # Add any other test-related commands here
 
-deploy: # another job
+deploy:
   stage: deploy
   script:
-    - echo "Deploying the app"
+    - echo "Deploying $APP_NAME"
+    # Add your actual deployment commands here
