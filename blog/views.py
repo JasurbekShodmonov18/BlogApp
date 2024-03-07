@@ -166,7 +166,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
 class FollowerViewSet(viewsets.ModelViewSet):
     queryset = Follower.objects.all()
     serializer_class = FollowerSerializer
-
+    permission_classes = [IsAuthenticated]
     @action(detail=True, methods=['post'])
     def follow(self, request, pk=None):
         follower = self.request.user
@@ -215,6 +215,7 @@ class CommmentViewSet(viewsets.ModelViewSet):
 class LikeViewSet(viewsets.ModelViewSet):
     queryset = Like.objects.all()
     serializer_class = LikeSerializer
+    permission_classes = [IsAuthenticated]
 
 class ReplyViewSet(viewsets.ModelViewSet):
     queryset = Reply.objects.all()

@@ -1,138 +1,19 @@
-# pre-setting
-variables:
-  AUTO_DEVOPS_BUILD_IMAGE_EXTRA_ARGS: "--build-arg=VERSION=${CI_APPLICATION_TAG}"
-  AUTO_DEVOPS_BUILD_IMAGE_FORWARDED_CI_VARIABLES: CI_APPLICATION_TAG
-  PYTHON_IMAGE_TAG: "3.10-slim"
-  POETRY_VERSION: "1.5.1"
-
 stages:
   - build
-  - unittest
+  - test
   - deploy
 
-# Workflow: Control what types of pipeline run.
-# In this example, if Dockerfile does not exists in the project, the pipeline won't be triggered.
-workflow:
-  rules:
-    - exists:
-        - Dockerfile
-
-# template: defined reusable components
-# `project: cicd/ci-template` means project `ci-template` in group `cicd`
-# `file`: the file in project `cicd/ci-template`
-include:
-  - project: cicd/ci-template
-    file:
-      - /Job/Build.gitlab-ci.yml
-      - /Job/UnitTest.Python.gitlab-ci.yml
-
-# before_script:
-# scripts will run `before` each job, could be overrided in each job's `before_script`
-before_script:
-  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-
-# tag templates, define who (Gitlab Runner) will execute the job.
-.tag_gcp: &tag_gcp
-  tags:
-    - gcp
-
-.tag_testing: &tag_testing
-  tags:
-    - testing
-
-.tags_staging: &tags_staging
-  tags:
-    - staging
-
-.tags_prod: &tags_production
-  tags:
-    - production
-
-# Environment template
-# Let CI/CD knows which env the pipeline is running, could be useful for environment variables (.env) injection.
-.environment_unittest: &environment_unittest
-  environment:
-    name: Unittest
-
-.environment_testing: &environment_testing
-  environment:
-    name: Testing
-    url: https://testing.example.com/api/
-
-.environment_staging: &environment_staging
-  environment:
-    name: Staging
-    url: https://staging.example.com/api/
-
-.environment_production: &environment_production
-  environment:
-    name: Production
-    url: https://example.com/api/
-
-# jobs
-
-# build stage is defined in `cicd/ci-template` and not present in this file,
-# just the scripts that how to build you application
-
-# build:
-#   stage: build
-#   script:
-#     - docker build -t ${CI_REGISTRY_IMAGE}:ooxx .
-#     - docker push ${CI_REGISTRY_IMAGE}:ooxx
-#   <<: *tag_gcp
-
-# the unittest is defined in `cicd/ci-template`, could be override in each project
-unittest:
-  variables:
-    ENV_FILENAME: .env
-  rules:
-    - if: $CI_MERGE_REQUEST_IID
-
-# .deploy is still a template that will be extend in different environments
-.deploy:
-  needs: [ "build", "unittest" ]
+build: # this is a job
+  stage: build
   script:
-    - docker pull $CI_APPLICATION_IMAGE
-    - docker-compose down --remove-orphans
-    - docker-compose up -d
+    - echo "Building"
 
-# deploy to testing or dev env when commit to a branch has an opening Merge Request
-deploy-mr-review-app:
-  stage: deploy
-  extends:
-    - .deploy
-  <<: *tag_testing
-  <<: *environment_testing
-  variables:
-    CI_APPLICATION_IMAGE: ${CI_REGISTRY_IMAGE}:mr-${CI_MERGE_REQUEST_IID}
-  rules:
-    - if: $CI_MERGE_REQUEST_IID
+unittest: # another job
+  stage: test
+  script:
+    - echo "Run a unittest for the app"
 
-# deploy to staging env with manually trigger (click button on Gitlab UI)
-deploy-review-staging:
+deploy: # another job
   stage: deploy
-  extends:
-    - .deploy
-  <<: *tags_staging
-  <<: *environment_staging
-  variables:
-    CI_APPLICATION_IMAGE: ${CI_REGISTRY_IMAGE}:mr-${CI_MERGE_REQUEST_IID}
-  rules:
-    - if: $CI_MERGE_REQUEST_IID
-      when: manual
-    - when: never
-
-# tag `v1.0.0` or `v2.0.1`, and deploy code to production
-deploy-production:
-  stage: deploy
-  needs: [ "build" ]  # override .deploy
-  extends:
-    - .deploy
-  <<: *tags_production
-  <<: *environment_production
-  variables:
-    CI_APPLICATION_IMAGE: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
-      when: manual
-    - when: never
+  script:
+    - echo "Deploying the app"
